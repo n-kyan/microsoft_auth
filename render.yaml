@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: calendar-auth-server
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OUTLOOK_CLIENT_ID
+        sync: false
+      - key: PYTHONPATH
+        value: .
