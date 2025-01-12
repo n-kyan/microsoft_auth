@@ -51,19 +51,29 @@ class TokenManager:
         return None
 
     async def get_auth_url(self):
-        auth_url = self.app.get_authorization_request_url(
-            scopes=self.scope,
-            redirect_uri="https://microsoft-auth-server.onrender.com/auth/callback"  # You'll need to update this
-        )
-        return auth_url
-
-    async def complete_auth(self, auth_code: str):
-        try:
-            result = self.app.acquire_token_by_authorization_code(
-                code=auth_code,
-                scopes=self.scope,
-                redirect_uri="https://microsoft-auth-server.onrender.com/auth/callback"  # This should match the above URL
+        # Initialize device flow
+        flow = self.app.initiate_device_flow(scopes=self.scope)
+        
+        if "user_code" not in flow:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to create device flow"
             )
+            
+        # Return both the verification URI and the user code
+        return {
+            "verification_uri": flow["verification_uri"],
+            "user_code": flow["user_code"],
+            "device_code": flow["device_code"],  # We'll need this for completing auth
+            "expires_in": flow["expires_in"]
+        }
+
+    async def complete_device_auth(self, device_code: str):
+        try:
+            result = self.app.acquire_token_by_device_flow({
+                "device_code": device_code,
+                "scopes": self.scope
+            })
             
             if "access_token" not in result:
                 raise HTTPException(
